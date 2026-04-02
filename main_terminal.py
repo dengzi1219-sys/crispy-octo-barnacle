@@ -130,17 +130,25 @@ def get_intraday_data(ticker):
                         # parts[2]是收盘价，连成线就是完美的分时走势
                         parsed_data.append({'Time': time_str, 'Price': float(parts[2])})
                 return pd.DataFrame(parsed_data)
-        else:
+       else:
             y_ticker = f"{clean_t}.SS" if (is_cn and clean_t.startswith(('6', '5', '9'))) else f"{clean_t}.SZ" if is_cn else ticker
-            df = yf.Ticker(y_ticker).history(period="1d", interval="1m")
+            
+            # --- 核心修复：五日图云端加固 ---
+            try:
+                if not is_local:
+                    ticker_obj = yf.Ticker(y_ticker)
+                    # 五日图建议 interval 设为 5m 或 15m，获取更稳的数据流
+                    df = ticker_obj.history(period="5d", interval="5m", proxy=None, timeout=15)
+                else:
+                    df = yf.Ticker(y_ticker).history(period="5d", interval="5m", timeout=10)
+            except:
+                df = pd.DataFrame()
+            # -------------------------------
+
             if not df.empty:
                 df_res = df[['Close']].reset_index().rename(columns={'Datetime':'Time', 'Close':'Price'})
-                df_res['Time'] = df_res['Time'].dt.strftime('%H:%M') 
+                df_res['Time'] = df_res['Time'].dt.strftime('%m-%d %H:%M') 
                 return df_res
-    except Exception as e:
-        print(f"分时图底层数据异常: {e}")
-        pass 
-    return pd.DataFrame()
 
 # 🟢 终极替换：五日图 (使用 push2his 的 5分钟级数据，完美规避基金无数据 Bug)
 @st.cache_data(ttl=60, show_spinner=False)
