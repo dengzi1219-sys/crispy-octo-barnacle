@@ -1,0 +1,10 @@
+streamlit
+yfinance
+pandas
+plotly
+requests
+beautifulsoup4
+deep-translator
+akshare
+numpy
+scikit-learn
